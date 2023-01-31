@@ -1,4 +1,7 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './App.css';
+import Buy from './Components/Buy';
+import BuyingNFT from './Components/BuyingNFT';
 import BuyOrSell from './Components/BuyOrSell';
 import ERC721 from './Components/ERC721';
 import Example from './Components/Example';
@@ -8,11 +11,21 @@ import MintNow from './Components/MintNow';
 function App() {
   return (
     <>
-    {/* {/* <MetaMaskWallet/> */}
-    {/* <ERC721/> */}
-    {/* <MintNow/> */}
-    <BuyOrSell/>  
-    {/* <Example/> */}
+    
+
+      <BrowserRouter>
+        <Routes>
+        <Route path='/' element={<BuyingNFT />} />
+
+          <Route path='/mint' element={<ERC721 />} />
+          <Route path='/buy' element={<Buy />} />
+
+          <Route path='/metamaskwallet' element={<MetaMaskWallet />} />
+          <Route path='/mintnow' element={<MintNow />} />
+          <Route path='/buyorsell' element={<BuyOrSell />} />
+          <Route path='/example' element={<Example />} />
+        </Routes>
+      </BrowserRouter>
     </>
   );
 }
