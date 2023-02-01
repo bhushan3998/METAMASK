@@ -5,9 +5,11 @@ import { Fragment, useState } from "react"
 
 export default () => {
 
-    let BASE_URL = 'https://staging.everlens.io:3000'
+    let IMAGE_UPLOADAPI = 'https://staging.everlens.io:3000/Upload'
+  
 
-    const [imgState, setImgState] = useState<any>()
+
+ 
 
     const [state, setState] = useState({
         name: "" as string,
@@ -26,22 +28,24 @@ export default () => {
         })
     }
 
-    const handleImage = async (e: any) => {
-        let img = e.target.files[0]
-        let image  = URL.createObjectURL(img)
-        setImgState(image)
-        const formData = new FormData();
-        formData.append("file" , img )
+    
+
+
+
+    
+
+   
+
+
+
+    const handleMetaData = async () => {
         try {
-            let Imgres = await axios.post(`${BASE_URL}/Upload`, formData)
-            console.log(Imgres.data.data.base_url);
-            
+
         } catch (error) {
-            console.log(error);
-            
+
         }
     }
-    
+
 
 
 
@@ -49,7 +53,7 @@ export default () => {
 
     return (
         <Fragment>
-            <div className="container">
+            {/* <div className="container">
                 <div className="createnft">
                     <div className="nftImage m-2">
                         <div className="ImageSection" >
@@ -90,10 +94,10 @@ export default () => {
                             <input type="number" name="royality" id="" className="form-control" onChange={handleState} placeholder='Enter Royality' />
                         </div>
                     </div>
-                    <button className="btn btn-primary">Mint</button>
+                    <button className="btn btn-primary" onClick={uploadAllData}>Mint</button>
 
                 </div>
-            </div>
+            </div> */}
 
         </Fragment>
     )

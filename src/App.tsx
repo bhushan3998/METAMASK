@@ -15,15 +15,15 @@ function App() {
 
       <BrowserRouter>
         <Routes>
-        <Route path='/' element={<BuyingNFT />} />
 
-          <Route path='/mint' element={<ERC721 />} />
-          <Route path='/buy' element={<Buy />} />
+          <Route path='/' element={<ERC721 />} />
+          <Route path='buy' element={<Buy />} />
 
-          <Route path='/metamaskwallet' element={<MetaMaskWallet />} />
-          <Route path='/mintnow' element={<MintNow />} />
-          <Route path='/buyorsell' element={<BuyOrSell />} />
-          <Route path='/example' element={<Example />} />
+        {/* <Route path='/buyingnft' element={<BuyingNFT />} /> */}
+          <Route path='metamaskwallet' element={<MetaMaskWallet />} />
+          <Route path='mintnow' element={<MintNow />} />
+          <Route path='buyorsell' element={<BuyOrSell />} />
+          <Route path='example' element={<Example />} />
         </Routes>
       </BrowserRouter>
     </>

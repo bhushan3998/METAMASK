@@ -4,44 +4,45 @@ type props = {
     signLoading: boolean,
     mintLoading: boolean,
     approveLoading: boolean
+    spinner:boolean
+    StepArray:Array<number>
     // ref:any
 }
 
 export default (props: props) => {
-    const { signLoading, mintLoading, approveLoading  } = props
+    const { signLoading, mintLoading, approveLoading, spinner , StepArray  } = props
+
+    console.log(StepArray);
+    
+
+    
     return (
         <>
-            <div className="modal fade" id="exampleModal"  tabIndex={-1} aria-labelledby="exampleModalLabel" aria-hidden="true"   >
-                <div className="modal-dialog">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h1 className="modal-title fs-5" id="exampleModalLabel">Modal title</h1>
-                            <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
+          
                         <div className="modal-body">
                             <div className="div">
-                                <h6>
+                                <p>
                                     {
-                                        mintLoading && <Spinner />
+                                        StepArray.includes(1) ? <i className="bi bi-check-circle-fill"></i> : mintLoading ? <Spinner /> :<i className="bi bi-hourglass-split"></i>
                                     }
                                     Minting
-                                </h6>
+                                </p>
                             </div>
                             <div className="div">
-                                <h6>
+                                <p>
                                     {
-                                        approveLoading && <Spinner />
+                                       StepArray.includes(2) ? <i className="bi bi-check-circle-fill"></i> : approveLoading ? <Spinner /> :<i className="bi bi-hourglass-split"></i>
                                     }
                                     Check Approvel
-                                </h6>
+                                </p>
                             </div>
                             <div className="div">
-                                <h6>
+                                <p>
                                     {
-                                        signLoading && <Spinner />
+                                        StepArray.includes(3) ? <i className="bi bi-check-circle-fill"></i> : signLoading ? <Spinner /> :<i className="bi bi-hourglass-split"></i>
                                     }
                                     Signing Message
-                                </h6>
+                                </p>
                             </div>
 
                         </div>
@@ -49,9 +50,7 @@ export default (props: props) => {
                             <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                             <button type="button" className="btn btn-primary">Save changes</button>
                         </div> */}
-                    </div>
-                </div>
-            </div>
+          
         </>
     )
 }
