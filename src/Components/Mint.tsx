@@ -1,23 +1,18 @@
 import axios from "axios"
-import { ethers } from "ethers"
-import { formatEther } from "ethers/lib/utils"
 import { Fragment, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import EhisabERC721 from '../Artifacts/EhisabERC721.json'
-import MARKETPLACE_ARTIFACTS from '../Artifacts/marketpalce.json'
 import Modal from "./Modal"
 import Spinner from "./Spinner"
-import Voucher from "./Utiles/Voucher"
+import { BASE_URL, ERC721_ADDRESS, getContract ,getMyProvider } from "./Utiles/Common"
 
 
 const stepsArray: Array<number> = []
-let BASE_URL = 'https://staging.acria.market:2083'
+
+
 
 export default () => {
-
-    const ERC20_address = "0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6"
-    const ERC721_ADDRESS = "0xf96cdb86aed0898a8f1aab7158b71b90797e1545"
-    const MARKETPLACE_ADDRESS = "0xc047A78f99458D56932b761a93D6CfCB13Bd298c"
+    const params = new URLSearchParams()
 
     const [currentAccount, setCurrentAccount] = useState<any>()
     const [connectButton, setConnectButton] = useState<string>("Connect")
@@ -27,11 +22,8 @@ export default () => {
     const [approveLoading, setApproveLoading] = useState<boolean>(false)
     const [signLoading, setSignLoading] = useState<boolean>(false)
     const [img, setImg] = useState<any>()
-
     const [imgState, setImgState] = useState<any>()
     const navigate = useNavigate()
-
-
 
     const [resState, setResState] = useState<any>({
         signature: '',
@@ -43,7 +35,6 @@ export default () => {
         endTime: "",
         tokenContract: "",
     })
-
 
     const [state, setState] = useState({
         name: "" as string,
@@ -60,180 +51,7 @@ export default () => {
             ...state,
             [event?.target.name]: event?.target.value
         })
-    }
-
-    console.log(state);
-    const ethereumInstalled = () => {
-        return (window as any).ethereum
-    }
-
-    const logintometamask = async () => {
-        const ethereum = ethereumInstalled()
-        if (ethereum) {
-            try {
-                const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
-                const chainId = await ethereum.request({ method: 'eth_chainId' })
-                const provider = new ethers.providers.Web3Provider(ethereum)
-
-                console.log('accounts', accounts);
-                console.log('chainId', chainId);
-                console.log('provider', provider);
-                return { accounts, chainId, provider }
-            } catch (error) {
-                console.log(error);
-                return null
-            }
-        } else {
-            console.log('Install Ethereum');
-            return null
-        }
-    }
-
-    const getMyProvider = async () => {
-        try {
-            const { accounts, eth_chainId, provider }: any = await logintometamask();
-            let balanceInWei = await provider.getBalance(accounts[0])
-            let gasPriceInWei = await provider.getGasPrice()
-            let balanceInEth = ethers.utils.formatEther(balanceInWei)
-            let gasPriceInEth = ethers.utils.formatEther(gasPriceInWei)
-            console.log('balanceInEth', balanceInEth);
-            console.log("gasPriceInEth", gasPriceInEth);
-            setCurrentAccount(accounts[0])
-            setConnectButton("Connected")
-            return { provider, accounts, eth_chainId, balanceInEth, gasPriceInEth, error: null }
-        } catch (error) {
-            console.log("getMyProvider error", error);
-            // debugger
-            return { error }
-        }
-    }
-
-    // const getMyProvider = async () => {
-    //     try {
-    //         const { accounts, eth_chainId, provider }: any = await logintometamask();
-    //         let balanceInWei = await provider.getBalance(accounts[0])
-    //         let gasPriceInWei = await provider.getGasPrice()
-    //         let balanceInEth = ethers.utils.formatEther(balanceInWei)
-    //         let gasPriceInEth = ethers.utils.formatEther(gasPriceInWei)
-    //         console.log('balanceInEth', balanceInEth);
-    //         console.log("gasPriceInEth", gasPriceInEth);
-    //         setCurrentAccount(accounts[0])
-    //         setConnectButton("Connected")
-    //         return { provider, accounts, eth_chainId, balanceInEth, gasPriceInEth, error: null }
-    //     } catch (error) {
-    //         console.log("getMyProvider error", error);
-    //         // debugger
-    //         return { error }
-    //     }
-    // }
-
-
-
-    const getERC721Contract = async () => {
-        const abi = EhisabERC721.abi;
-        const { provider, accounts } = await getMyProvider()
-        const signer = provider.getSigner()
-        const contract = new ethers.Contract(ERC721_ADDRESS, abi, signer);
-        return { contract, accounts }
-    }
-
-    const getMarketPlaceContract = async () => {
-        // debugger
-        const abi = MARKETPLACE_ARTIFACTS.abi;
-        const { provider, accounts } = await getMyProvider()
-        const signer = provider.getSigner()
-        const contract = new ethers.Contract(MARKETPLACE_ADDRESS, abi, signer);
-        console.log("getMarketPlaceContract contract", contract);
-        return { contract, accounts, provider, signer }
-    }
-
-
-
-    // const getContract = async () => {
-    //     // debugger
-    //     const abi = MARKETPLACE_ARTIFACTS.abi;
-    //     const { provider, accounts } = await getMyProvider()
-    //     const signer = provider.getSigner()
-    //     const contract = new ethers.Contract(MARKETPLACE_ADDRESS, abi, signer);
-    //     console.log("getMarketPlaceContract contract", contract);
-    //     return { contract, accounts, provider, signer }
-    // }
-
-    const requestApprove = async (contract: any, address: string) => {
-        try {
-            const trasactionRes = await contract.functions.setApprovalForAll(address, true);
-            const transactionSuccess = await trasactionRes.wait();
-            console.log("requestApprove transactionSuccess", transactionSuccess);
-            return transactionSuccess
-        } catch (error: any) {
-            return null
-        }
-    }
-
-
-    const approveMarktplace = async () => {
-        setMintLoading(false)
-        stepsArray.push(1)
-        setApproveLoading(true)
-        try {
-            const { contract, accounts } = await getERC721Contract();
-            const isApproveForAllRes = await contract.functions.isApprovedForAll(accounts[0], MARKETPLACE_ADDRESS);
-            if (Array.isArray(isApproveForAllRes) && isApproveForAllRes.length) {
-                let isApproved = isApproveForAllRes[0]
-                if (isApproved) {
-                    return isApproved
-                } else {
-                    return await requestApprove(contract, MARKETPLACE_ADDRESS)
-                }
-            } else {
-                return await requestApprove(contract, MARKETPLACE_ADDRESS)
-            }
-        } catch (error) {
-            console.log("error", error);
-            return null
-        }
-    }
-
-    const signMyToken = async () => {
-        setApproveLoading(false)
-        stepsArray.push(2)
-        setSignLoading(true)
-        // debugger
-        const { contract, accounts, signer } = await getMarketPlaceContract()
-        const ether = ethers.utils.parseEther(Number(state.price).toFixed(18));
-        await Voucher.setToken(contract, signer);
-        const { signature, salt, owner, minPrice, auctionType, quantity, endTime, tokenContract } = await Voucher.CreateVoucher(accounts[0], 1, Number(1), 0, ether, ERC721_ADDRESS);
-        // debugger
-        stepsArray.push(3)
-
-        setResState({
-            ...resState,
-            signature: signature,
-            owner: owner,
-            salt: salt,
-            minPrice: formatEther(minPrice),
-            auctionType: auctionType,
-            quantity: quantity,
-            endTime: endTime,
-            tokenContract: tokenContract,
-        })
-
-        const params = new URLSearchParams()
-        params.set('signature', signature)
-        params.set('owner', owner)
-        params.set("salt", salt as any)
-        params.set("minPrice", minPrice)
-        params.set("auctionType", auctionType)
-        params.set("quantity", quantity)
-        params.set("endTime", endTime)
-        params.set("tokenContract", tokenContract);
-        params.set("price", state.price as any);
-        params.set("royality", state.royality as any);
-
-        (window as any).document.getElementById("btn-close").click()
-        navigate({ pathname: "/buy", search: params.toString() })
-        setSignLoading(false)
-    }
+    }   
 
     const handleImage = async (e: any) => {
         let img = e.target.files[0]
@@ -245,12 +63,11 @@ export default () => {
     const mintNow = async () => {
         setSpinner(true)
         setMintLoading(true)
-        ///
-        const { contract } = await getERC721Contract();
+        const abi = EhisabERC721.abi;
+        const { contract } = await getContract(ERC721_ADDRESS , abi);
         try {
             const formData = new FormData();
             formData.append("file", img)
-
             let apiRes = await axios.post(`${BASE_URL}/upload/ipfs/file`, formData)
             let ImgCID = apiRes.data.data
             let item = {
@@ -264,17 +81,19 @@ export default () => {
             const metaRes = await axios.post(`${BASE_URL}/Upload/ipfs/metadata`, { metadata: metadata })
             const contractRes = await contract.functions.mint(metaRes.data.data, Number(state.royality))
             const waitRes = await contractRes.wait()
-
-            await approveMarktplace()
-            await signMyToken()
+            console.log(waitRes.events[0].args.tokenId);
+            let tokenId = waitRes.events[0].args.tokenId
+            params.set("img_cid" , ImgCID)
+            params.set("tokenId", tokenId as string);
+            // await approveMarktplace()
+            // await signMyToken()
             setSpinner(false);
 
         } catch (error) {
             console.log(error);
-
         }
     }
-    
+
     return <Fragment>
         <div className="container">
             {/* <ProgressBar barWidth={barState} /> */}
