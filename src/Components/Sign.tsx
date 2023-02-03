@@ -4,17 +4,51 @@ import { ethers } from "ethers";
 import Voucher from "./Utiles/Voucher";
 import MARKETPLACE_ARTIFACTS from '../Artifacts/marketpalce.json'
 import { ERC721_ADDRESS, getContract, MARKETPLACE_ADDRESS } from "./Utiles/Common";
+import { useLocation, useNavigate } from "react-router-dom";
+import Modal from "./Modal";
+import dayjs from 'dayjs';
+import { RangePickerProps } from 'antd/es/date-picker';
+import { DatePicker } from 'antd';
 
 export default () => {
-
-    const [state , setState] = useState(
+    const moment = require('moment');
+    const location = useLocation()
+    const params = new URLSearchParams(location.search)
+    const imgCid = params.get("img_cid")
+    const navigate = useNavigate()
+    const [state, setState] = useState(
         {
-            price:"",
-            nftType:""
+            price: "",
+            nftType: 0 as number,
+            endTime: 0,
+            // quantity: 0 as number
         }
     )
+    const [approveLoading, setApproveLoading] = useState<boolean>(false)
+    const [signLoading, setSignLoading] = useState<boolean>(false)
+    const [endDate, setEndDate] = useState(moment(new Date()).format('YYYY-MM-DD'))
 
-    const params = new URLSearchParams()
+    const handleState = (event: any) => {
+        setState({
+            ...state,
+            [event?.target.name]: event?.target.value
+        })
+    }
+
+    const disabledDate: RangePickerProps['disabledDate'] = (current: any) => {
+        return current && current < dayjs().startOf('day');
+    }
+
+    const onChange = (date: any) => {
+        let date_value = (date.$d)
+        let dateValueTimestamp = Math.round(date_value.getTime() / 1000);
+        setState({
+            ...state,
+            endTime: dateValueTimestamp
+        })
+        setEndDate(moment(date_value).format('YYYY-MM-DD'))
+    };
+
     const requestApprove = async (contract: any, address: string) => {
         try {
             const trasactionRes = await contract.functions.setApprovalForAll(address, true);
@@ -27,12 +61,11 @@ export default () => {
     }
 
     const approveMarktplace = async () => {
-        // setMintLoading(false)
         // stepsArray.push(1)
-        // setApproveLoading(true)
+        setApproveLoading(true)
         const abi = EhisabERC721.abi;
         try {
-            const { contract, accounts } = await getContract(ERC721_ADDRESS , abi);
+            const { contract, accounts } = await getContract(ERC721_ADDRESS, abi);
             const isApproveForAllRes = await contract.functions.isApprovedForAll(accounts[0], MARKETPLACE_ADDRESS);
             if (Array.isArray(isApproveForAllRes) && isApproveForAllRes.length) {
                 let isApproved = isApproveForAllRes[0]
@@ -51,29 +84,16 @@ export default () => {
     }
 
     const signMyToken = async () => {
-        // setApproveLoading(false)
+        setApproveLoading(false)
         // stepsArray.push(2)
-        // setSignLoading(true)
+        setSignLoading(true)
         // debugger
         const abi = MARKETPLACE_ARTIFACTS.abi;
-        const { contract, accounts, signer } = await getContract(MARKETPLACE_ADDRESS ,abi)
+        const { contract, accounts, signer } = await getContract(MARKETPLACE_ADDRESS, abi)
         const ether = ethers.utils.parseEther(Number(state.price).toFixed(18));
         await Voucher.setToken(contract, signer);
-        const { signature, salt, owner, minPrice, auctionType, quantity, endTime, tokenContract } = await Voucher.CreateVoucher(accounts[0], 1, Number(1), 0, ether, ERC721_ADDRESS);
+        const { signature, salt, owner, minPrice, auctionType, quantity, endTime, tokenContract } = await Voucher.CreateVoucher(accounts[0], Number(state.nftType), Number(1), Number(state.endTime), ether, ERC721_ADDRESS);
         // stepsArray.push(3)
-        // setResState({
-        //     ...resState,
-        //     signature: signature,
-        //     owner: owner,
-        //     salt: salt,
-        //     minPrice: formatEther(minPrice),
-        //     auctionType: auctionType,
-        //     quantity: quantity,
-        //     endTime: endTime,
-        //     tokenContract: tokenContract,
-        // })
-
-       
         params.set('signature', signature)
         params.set('owner', owner)
         params.set("salt", salt as any)
@@ -82,25 +102,86 @@ export default () => {
         params.set("quantity", quantity)
         params.set("endTime", endTime)
         params.set("tokenContract", tokenContract);
-        // params.set("price", state.price as any);
+        params.set("price", state.price as any);
+        // params.set("quantity", state.quantity as any)
         // params.set("royality", state.royality as any);
-
+        setSignLoading(false);
         (window as any).document.getElementById("btn-close").click()
-        // navigate({ pathname: "/buy", search: params.toString() })
-        // setSignLoading(false)
+        navigate({ pathname: "/buy", search: params.toString() })
     }
 
-    const putOnSell = async() => {
+    const putOnSale = async () => {
+        try {
             await approveMarktplace()
             await signMyToken()
 
-    } 
+        } catch (error) {
+            (window as any).document.getElementById("btn-close").click()
+        }
+    }
+                                                    
+    return <Fragment>
 
-    return<Fragment>
+        <div className="container">
+            <h1 className="text-center text-secondary">Approve & Sign My Token</h1>
+            <div className="nft-image text-center ">
+                <img src={`https://ipfs.io/ipfs/${imgCid}`} alt="" className="rounded-3" width="300px" height="300px" />
+            </div>
+            <div className="price m-2">
+                Price:-
+                <input type="number" name="price" id="" className="form-control" onChange={handleState} placeholder="Enter Price" />
+            </div>
+            {/* <div className="price m-2">
+                Quantity:-
+                <input type="number" name="quantity" id="" className="form-control" onChange={handleState} placeholder="Enter Quantity" />
+            </div> */}
+            <div className="type m-2">
+                Select NFT Type:-
+                <select className="form-select" aria-label="Default select example" name="nftType" onChange={handleState} >
+                    <option selected value={0} >Select NFT Type</option>
+                    <option value={1}>Fixed</option>
+                    <option value={2}>Auction</option>
+                </select>
+            </div>
+
+            {state.nftType == 2 ? <DatePicker
+                format='YYYY-MM-DD'
+                className='w-100 form-control'
+                defaultValue={dayjs(endDate, 'YYYY-MM-DD')}
+                disabledDate={disabledDate}
+                placeholder='YYYY-MM-DD'
+                onChange={onChange}
+                inputReadOnly
+            /> : ""}
+
+            {/* <input type="datetime-local" name="" id="" onChange={onChange} /> */}
+            {/* <input type="datetime-local" name="" id="" /> */}
+            <button className="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#exampleModal" onClick={putOnSale}>Put On Sale</button>
+
+
+            <div className={`modal fade`} id="exampleModal" tabIndex={-1} aria-labelledby="exampleModalLabel" aria-hidden="true"   >
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h1 className="modal-title fs-5" id="exampleModalLabel">Modal title</h1>
+                            <button type="button" className="btn-close" id="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <Modal
+                            StepArray=""
+                            loading1={approveLoading}
+                            loading2={signLoading}
+                            value1="Approve Marketplace"
+                            value2="Sign My Token"
+                        />
+                    </div>
+                </div>
+            </div>
+
+        </div>
 
 
 
-        </Fragment>
-        
-    
+    </Fragment>
+
+
 }

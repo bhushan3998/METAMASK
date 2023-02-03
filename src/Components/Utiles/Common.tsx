@@ -6,6 +6,7 @@ export const BASE_URL = 'https://staging.acria.market:2083'
 export const MARKETPLACE_ADDRESS = "0xD14B3d04b08608c26D39B59A50A65D1D5F590Da8"
 export const WETH_GOERLI_ADDRESS_KEY = '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'
 export const ERC721_ADDRESS = "0xf96cdb86aed0898a8f1aab7158b71b90797e1545"
+export const PURCHASE_TIME_TEX = 3
 
 export const ethereumInstalled = () => {
     return (window as any).ethereum
@@ -69,3 +70,41 @@ export const getContract = async (address: string, abi: any) => {
     const contract = new ethers.Contract(address, abi, signer);
     return { contract, accounts, provider, signer }
 }
+
+
+
+
+// let item = {
+            //     image: `ipfs://${ImgCID}`,
+            //     name: state.name,
+            //     price: state.price,
+            //     description: state.description,
+            // }
+
+            // const metadata = JSON.stringify(item)
+            // const metaRes = await axios.post(`${BASE_URL}/Upload/ipfs/metadata`, { metadata: metadata })
+
+
+
+
+            // const contractRes = await contract.functions.mint(metaRes.data.data, Number(state.royality))
+            // const waitRes = await contractRes.wait()
+            // console.log(waitRes.events[0].args.tokenId);
+            // let tokenId = waitRes.events[0].args.tokenId
+            // params.set("img_cid" , ImgCID)
+            // params.set("tokenId", tokenId as string);
+            // await approveMarktplace()
+            // await signMyToken()
+            // setSpinner(false);
+
+
+            // const [resState, setResState] = useState<any>({
+            //     signature: '',
+            //     owner: "",
+            //     salt: "",
+            //     minPrice: "",
+            //     auctionType: "",
+            //     quantity: "",
+            //     endTime: "",
+            //     tokenContract: "",
+            // })
