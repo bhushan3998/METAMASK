@@ -17,6 +17,7 @@ export default () => {
     const [img, setImg] = useState<any>()
     const [imageLoading, setSetImageLoading] = useState<boolean>(false)
     const [mintLoading, setMintLoading] = useState<boolean>(false)
+    const [mintBtnLoading , setMintBtnLoading] = useState<boolean>(false)
     const [imgState, setImgState] = useState<any>()
     const [state, setState] = useState({
         name: "" as string,
@@ -53,6 +54,7 @@ export default () => {
     const mint = async () => {
         const abi = EhisabERC721.abi;
         try {
+            setMintBtnLoading(true)
             setSetImageLoading(true)
             const formData = new FormData();
             formData.append("file", img)
@@ -65,7 +67,7 @@ export default () => {
                 name: state.name,
                 description: state.description,
             }
-
+            stepsArray.push(1)
             const metadata = JSON.stringify(item)
             const metaRes = await axios.post(`${BASE_URL}/Upload/ipfs/metadata`, { metadata: metadata })
             setSetImageLoading(false)
@@ -73,12 +75,15 @@ export default () => {
             const contractRes = await contract.functions.mint(metaRes.data.data, Number(state.royality))
             const waitRes = await contractRes.wait()
             console.log(waitRes);
+            stepsArray.push(2)
             let tokenId = waitRes.events[0].args.tokenId._hex
+        
             setMintLoading(false)
             searchParams.set("tokenId", tokenId as string);
             setSetCreatebtnLoading(false);
+            setMintBtnLoading(false);
             (window as any).document.getElementById("btn-close").click()
-            navigate({ pathname: "/sign", search: searchParams.toString()})
+            navigate({ pathname: "/sign", search: searchParams.toString() })
         } catch (error) {
             console.log(error);
         }
@@ -97,9 +102,7 @@ export default () => {
                     {balance ? <div className="Wallet-address  h5">
                         Balance:{balance}
                     </div> : ""}
-
                 </div>
-
                 <div className="wallert-connect-btn">
                     <button className="btn btn-sm btn-primary" onClick={myProvider}>{connectButton}</button>
                 </div>
@@ -129,34 +132,26 @@ export default () => {
                         <input type="number" name="royality" id="" className="form-control" onChange={handleState} placeholder='Enter Royality' />
                     </div>
                 </div>
-                <button className={`btn btn-primary `} data-bs-toggle="modal" data-bs-target="#exampleModal" disabled={createBtnLoading || !(state.name && state.royality && state.description)} onClick={mint}>{createBtnLoading ? <Spinner /> : ""} Create NFT</button>
+                <button className={`btn btn-primary `} data-bs-toggle="modal" data-bs-target="#exampleModal" disabled={mintBtnLoading || !(state.name && state.royality && state.description)} onClick={mint}>{mintBtnLoading ? <Spinner /> : ""} Create NFT</button>
 
                 <div className={`modal fade`} id="exampleModal" tabIndex={-1} aria-labelledby="exampleModalLabel" aria-hidden="true"   >
-                    <div className="modal-dialog">
+                    <div className="modal-dialog modal-dialog modal-dialog-centered">
                         <div className="modal-content">
                             <div className="modal-header">
-                                <h1 className="modal-title fs-5" id="exampleModalLabel">Modal title</h1>
+                                <h1 className="modal-title fs-5" id="exampleModalLabel">Minting Steps</h1>
                                 <button type="button" className="btn-close" id="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <Modal
-                                StepArray={stepsArray}
+                                stepsArray={stepsArray}
                                 loading1={imageLoading}
                                 loading2={mintLoading}
-                                value1="Uploading Image"
-                                value2="Minting NFT"
+                                values={["Uploading Image", "Minting NFT"]}
                             />
                         </div>
                     </div>
                 </div>
-
             </div>
-
-
             <div className="error-msg">
-                {/* <button onClick={buy}>BUY</button> */}
-                {/* <h5 className="text-warning">
-                    {errorMessage}
-                </h5> */}
             </div>
         </div>
     </Fragment>

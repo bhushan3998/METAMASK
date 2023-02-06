@@ -10,6 +10,8 @@ import dayjs from 'dayjs';
 import { RangePickerProps } from 'antd/es/date-picker';
 import { DatePicker } from 'antd';
 
+const stepsArray: Array<number> = []
+
 export default () => {
     const moment = require('moment');
     const location = useLocation()
@@ -24,6 +26,7 @@ export default () => {
             // quantity: 0 as number
         }
     )
+
     const [approveLoading, setApproveLoading] = useState<boolean>(false)
     const [signLoading, setSignLoading] = useState<boolean>(false)
     const [endDate, setEndDate] = useState(moment(new Date()).format('YYYY-MM-DD'))
@@ -53,6 +56,7 @@ export default () => {
         try {
             const trasactionRes = await contract.functions.setApprovalForAll(address, true);
             const transactionSuccess = await trasactionRes.wait();
+            setApproveLoading(false)
             console.log("requestApprove transactionSuccess", transactionSuccess);
             return transactionSuccess
         } catch (error: any) {
@@ -61,7 +65,6 @@ export default () => {
     }
 
     const approveMarktplace = async () => {
-        // stepsArray.push(1)
         setApproveLoading(true)
         const abi = EhisabERC721.abi;
         try {
@@ -69,6 +72,7 @@ export default () => {
             const isApproveForAllRes = await contract.functions.isApprovedForAll(accounts[0], MARKETPLACE_ADDRESS);
             if (Array.isArray(isApproveForAllRes) && isApproveForAllRes.length) {
                 let isApproved = isApproveForAllRes[0]
+
                 if (isApproved) {
                     return isApproved
                 } else {
@@ -84,8 +88,8 @@ export default () => {
     }
 
     const signMyToken = async () => {
+        stepsArray.push(1)
         setApproveLoading(false)
-        // stepsArray.push(2)
         setSignLoading(true)
         // debugger
         const abi = MARKETPLACE_ARTIFACTS.abi;
@@ -103,23 +107,30 @@ export default () => {
         params.set("endTime", endTime)
         params.set("tokenContract", tokenContract);
         params.set("price", state.price as any);
+
+        console.log(endTime);
+        
         // params.set("quantity", state.quantity as any)
         // params.set("royality", state.royality as any);
+        stepsArray.push(2)
         setSignLoading(false);
         (window as any).document.getElementById("btn-close").click()
-        navigate({ pathname: "/buy", search: params.toString() })
+        if(state.nftType==1){
+            navigate({ pathname: "/bid", search: params.toString() })
+        }else{
+            navigate({ pathname: "/buy", search: params.toString() })
+        }
     }
 
     const putOnSale = async () => {
         try {
             await approveMarktplace()
             await signMyToken()
-
         } catch (error) {
             (window as any).document.getElementById("btn-close").click()
         }
     }
-                                                    
+
     return <Fragment>
 
         <div className="container">
@@ -143,7 +154,6 @@ export default () => {
                     <option value={2}>Auction</option>
                 </select>
             </div>
-
             {state.nftType == 2 ? <DatePicker
                 format='YYYY-MM-DD'
                 className='w-100 form-control'
@@ -153,34 +163,24 @@ export default () => {
                 onChange={onChange}
                 inputReadOnly
             /> : ""}
-
-            {/* <input type="datetime-local" name="" id="" onChange={onChange} /> */}
-            {/* <input type="datetime-local" name="" id="" /> */}
             <button className="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#exampleModal" onClick={putOnSale}>Put On Sale</button>
-
-
             <div className={`modal fade`} id="exampleModal" tabIndex={-1} aria-labelledby="exampleModalLabel" aria-hidden="true"   >
-                <div className="modal-dialog">
+                <div className="modal-dialog modal-dialog modal-dialog-centered">
                     <div className="modal-content">
                         <div className="modal-header">
-                            <h1 className="modal-title fs-5" id="exampleModalLabel">Modal title</h1>
+                            <h1 className="modal-title fs-5" id="exampleModalLabel">Steps For Sign Token</h1>
                             <button type="button" className="btn-close" id="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <Modal
-                            StepArray=""
+                            stepsArray={stepsArray}
                             loading1={approveLoading}
                             loading2={signLoading}
-                            value1="Approve Marketplace"
-                            value2="Sign My Token"
+                            values={["Approve Marketplace", "Sign My Token"]}
                         />
                     </div>
                 </div>
             </div>
-
         </div>
-
-
-
     </Fragment>
 
 
