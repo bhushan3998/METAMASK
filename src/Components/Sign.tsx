@@ -115,7 +115,8 @@ export default () => {
         stepsArray.push(2)
         setSignLoading(false);
         (window as any).document.getElementById("btn-close").click()
-        if(state.nftType==1){
+
+        if(state.nftType==2){
             navigate({ pathname: "/bid", search: params.toString() })
         }else{
             navigate({ pathname: "/buy", search: params.toString() })

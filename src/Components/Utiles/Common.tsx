@@ -1,4 +1,5 @@
 import { ethers } from "ethers"
+import { IERC20 } from "../../Artifacts/IERC20"
 
 
 export const BASE_URL = 'https://staging.acria.market:2083'
@@ -43,24 +44,12 @@ export const getMyProvider = async () => {
         let gasPriceInEth = ethers.utils.formatEther(gasPriceInWei)
         console.log('balanceInEth', balanceInEth);
         console.log("gasPriceInEth", gasPriceInEth);
-        // setCurrentAccount(accounts[0])
-        // setConnectButton("Connected")
         return { provider, accounts, eth_chainId, balanceInEth, gasPriceInEth, error: null }
     } catch (error) {
         console.log("getMyProvider error", error);
-        // debugger
         return { error }
     }
 }
-
-
-// export const getContract = async (Address: any,abi:any) => {
-//     const { provider, accounts } = await getMyProvider()
-//     const signer = provider.getSigner()
-//     const contract = new ethers.Contract(Address, abi, signer);
-//     console.log("getContract contract", contract);
-//     return { contract, accounts, provider, signer }
-// }
 
 export const getContract = async (address: string, abi: any) => {
     const ethereum = ethereumInstalled()
@@ -71,40 +60,10 @@ export const getContract = async (address: string, abi: any) => {
     return { contract, accounts, provider, signer }
 }
 
-
-
-
-// let item = {
-            //     image: `ipfs://${ImgCID}`,
-            //     name: state.name,
-            //     price: state.price,
-            //     description: state.description,
-            // }
-
-            // const metadata = JSON.stringify(item)
-            // const metaRes = await axios.post(`${BASE_URL}/Upload/ipfs/metadata`, { metadata: metadata })
-
-
-
-
-            // const contractRes = await contract.functions.mint(metaRes.data.data, Number(state.royality))
-            // const waitRes = await contractRes.wait()
-            // console.log(waitRes.events[0].args.tokenId);
-            // let tokenId = waitRes.events[0].args.tokenId
-            // params.set("img_cid" , ImgCID)
-            // params.set("tokenId", tokenId as string);
-            // await approveMarktplace()
-            // await signMyToken()
-            // setSpinner(false);
-
-
-            // const [resState, setResState] = useState<any>({
-            //     signature: '',
-            //     owner: "",
-            //     salt: "",
-            //     minPrice: "",
-            //     auctionType: "",
-            //     quantity: "",
-            //     endTime: "",
-            //     tokenContract: "",
-            // })
+export const accessERC20 = async (address: any, marketplaceAddr: any,) => {
+    const abi = IERC20();
+    const { contract, accounts, provider, signer } = await getContract(address, abi);
+    const allowanceERC20Tx = await contract.allowance(accounts[0], marketplaceAddr)
+    const balanceOfERC20Tx = await contract.balanceOf(accounts[0])
+    return { allowanceERC20Tx, balanceOfERC20Tx, contract, provider, accounts, signer }
+}            

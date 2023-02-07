@@ -3,9 +3,10 @@ import { Fragment, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { IERC20 } from "../Artifacts/IERC20"
 import MarketPlaceABI from "../Artifacts/MarketPlaceABI.json"
+import EhisabERC721 from '../Artifacts/EhisabERC721.json'
 import Modal from "./Modal"
 import Spinner from "./Spinner"
-import { getContract, MARKETPLACE_ADDRESS, PURCHASE_TIME_TEX, WETH_GOERLI_ADDRESS_KEY } from "./Utiles/Common"
+import { accessERC20, ERC721_ADDRESS, getContract, MARKETPLACE_ADDRESS, PURCHASE_TIME_TEX, WETH_GOERLI_ADDRESS_KEY } from "./Utiles/Common"
 import Voucher from "./Utiles/Voucher"
 
 
@@ -26,11 +27,58 @@ export default () => {
     const token_Id = searchParams.get("tokenId")
     const img_cid = searchParams.get("img_cid")
     // const royality = searchParams.get("royality")
+    const _end_date = Math.round(Number(endTime) / 1000)
 
     const [buyBtn, setBuyBtn] = useState<boolean>(false)
     const [amountLoading, setAmountLoading] = useState<boolean>(false)
     const [contractLoading, setContractLoading] = useState<boolean>(false)
-    const [buyLoading, setBuyLoading] = useState<boolean>(false)
+    const [bidLoading, setBidLoading] = useState<boolean>(false)
+
+    const [state, setstate] = useState({
+        account: "",
+        amount: "" as any
+    })
+
+    const handleState = (e: any) => {
+        setstate({
+            ...state,
+            [e.target.name]: e.target.value
+        })
+    }
+
+    const requestApprove = async (contract: any, address: string) => {
+        try {
+            const trasactionRes = await contract.functions.setApprovalForAll(address, true);
+            const transactionSuccess = await trasactionRes.wait();
+            console.log("requestApprove transactionSuccess", transactionSuccess);
+            return transactionSuccess
+        } catch (error: any) {
+            return null
+        }
+    }
+
+    const approveMarktplace = async () => {
+
+        const abi = EhisabERC721.abi;
+        try {
+            const { contract, accounts } = await getContract(ERC721_ADDRESS, abi);
+            const isApproveForAllRes = await contract.functions.isApprovedForAll(accounts[0], MARKETPLACE_ADDRESS);
+            if (Array.isArray(isApproveForAllRes) && isApproveForAllRes.length) {
+                let isApproved = isApproveForAllRes[0]
+
+                if (isApproved) {
+                    return isApproved
+                } else {
+                    return await requestApprove(contract, MARKETPLACE_ADDRESS)
+                }
+            } else {
+                return await requestApprove(contract, MARKETPLACE_ADDRESS)
+            }
+        } catch (error) {
+            console.log("error", error);
+            return null
+        }
+    }
 
     const calculateWrappedAmount = (price: any, quantity: any, tax: number) => {
         stepsArray.push(1)
@@ -41,14 +89,6 @@ export default () => {
         const commission = actualPrice - Number(priceWithQuantity)
         setAmountLoading(false)
         return { actualPrice, commission }
-    }
-
-    const accessERC20 = async (address: any, marketplaceAddr: any,) => {
-        const abi = IERC20();
-        const { contract, accounts, provider, signer } = await getContract(address, abi);
-        const allowanceERC20Tx = await contract.allowance(accounts[0], marketplaceAddr)
-        const balanceOfERC20Tx = await contract.balanceOf(accounts[0])
-        return { allowanceERC20Tx, balanceOfERC20Tx, contract, provider, accounts, signer }
     }
 
     const wrappedContract = async (actualPrice: number, wrapped: string, marketplaceAddr: string) => {
@@ -71,37 +111,46 @@ export default () => {
         }
         return { contract, accounts, provider, signer }
     }
-    
-    const finaliseAuction = async (owner_address: string, voucher: any, signature: string, price: any, quantity: number, tokenContract: string, wETHAddress: string, auction_type: number) => {
+
+    const finaliseAuction = async (quantity: number, tokenContract: string, wETHAddress: string, auction_type: number) => {
+        // debugger
         const abi = MarketPlaceABI.abi
-        const { contract, accounts } = await getContract(MARKETPLACE_ADDRESS, abi)
+        const { contract, accounts, signer } = await getContract(MARKETPLACE_ADDRESS, abi)
         const { actualPrice, commission } = calculateWrappedAmount(price, quantity, PURCHASE_TIME_TEX)
+        let _etherPrice = ethers.utils.parseEther(Number(price).toFixed(18));
+        let _token_id = BigNumber.from(token_Id)
+
         await wrappedContract(actualPrice, wETHAddress, MARKETPLACE_ADDRESS)
-        try {
-            stepsArray.push(1, 2)
-            setBuyLoading(true)
-            const contractTransaction = await contract.functions.buy721(owner_address, voucher, signature, tokenContract)
-            console.log('contractTransaction', contractTransaction);
-            const res = await contractTransaction.wait();
-            console.log('res', res);
-            setBuyLoading(false);
-            stepsArray.push(3)
-            return res
-        } catch (error) {
-            console.log('finaliseAuction721 1 error', error);
-            return null
+        const bidAmount = ethers.utils.parseEther(Number(state.amount).toFixed(18))
+
+        await Voucher.setToken(contract, signer);
+        let isApprove = await approveMarktplace()
+        if (isApprove) {
+
+            const { signature, salt, auctionType, endTime } = await Voucher.CreateVoucher(accounts[0], auction_type, quantity, Number(_end_date), bidAmount, ERC721_ADDRESS);
+            const voucher = [_token_id, _etherPrice, auctionType,quantity,endTime, salt]
+            try {
+                stepsArray.push(1, 2)
+                setBidLoading(true)
+                const contractTransaction = await contract.functions.bid721(state.account, owner_address, voucher, signature, bidAmount, tokenContract)
+                console.log('contractTransaction', contractTransaction);
+                const res = await contractTransaction.wait();
+                setBidLoading(false)
+                console.log('res', res);
+                stepsArray.push(3)
+                return res
+            } catch (error) {
+                console.log('finaliseAuction721 1 error', error);
+                return null
+            }
         }
     }
 
-    const buy721 = async () => {
-        debugger
+    const bid721 = async () => {
+        // debugger
         try {
             setBuyBtn(true)
-            let _etherPrice = ethers.utils.parseEther(Number(price).toFixed(18));
-            let _token_id = BigNumber.from(token_Id)
-            let _end_date = Math.round(Number(endTime) / 1000)
-            const voucher = [_token_id, _etherPrice, Number(auctionType), Number(quantity), Number(_end_date), Number(salt)]
-            let contractRes = await finaliseAuction(owner_address as string, voucher, signature as string, price, Number(quantity), tokenContract as string, WETH_GOERLI_ADDRESS_KEY, Number(auctionType));
+            let contractRes = await finaliseAuction(Number(quantity), tokenContract as string, WETH_GOERLI_ADDRESS_KEY, Number(auctionType));
             console.log('contractRes', contractRes);
             (window as any).document.getElementById("btn-close").click()
             setBuyBtn(false)
@@ -115,7 +164,7 @@ export default () => {
             <div className="container">
                 <div className="sign-details shadow  rounded-2 mx-auto">
                     <h1 className="text-center my-3 text-secondary fw-bold">Your Nft Dtails</h1>
-                    <h1 className=" text-center text-secondary">Buy NFT</h1>
+                    <h1 className=" text-center text-secondary">Bid NFT</h1>
                     <div className="nft-card">
                         <div className="nft-image text-center ">
                             <img src={`https://ipfs.io/ipfs/${img_cid}`} alt="" className="rounded-3" width="300px" height="300px" />
@@ -147,7 +196,7 @@ export default () => {
                             </div>
                         </div>
                     </div>
-                    {/* <div className="create-a-bid">
+                    <div className="create-a-bid">
                         <div className="Account-addr">
                             Account Addr:-
                             <input type="text" name="account" id="account" className="form-control" onChange={handleState} />
@@ -156,11 +205,11 @@ export default () => {
                             Bidding Amount:-
                             <input type="number" name="amount" id="amount" className="form-control" onChange={handleState} />
                         </div>
-                    </div> */}
+                    </div>
                 </div>
                 <div className="buy-nft text-center my-3">
                     <div className="buy-nft">
-                        <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal" disabled={buyBtn} onClick={buy721}>{buyBtn ? <Spinner /> : ""}Buy</button>
+                        <button className="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal" disabled={buyBtn} onClick={bid721}>{buyBtn ? <Spinner /> : ""}Buy</button>
                     </div>
                 </div>
                 <div className={`modal fade`} id="exampleModal" tabIndex={-1} aria-labelledby="exampleModalLabel" aria-hidden="true"   >
@@ -174,7 +223,7 @@ export default () => {
                                 stepsArray={stepsArray}
                                 loading1={amountLoading}
                                 loading2={contractLoading}
-                                loading3={buyLoading}
+                                loading3={bidLoading}
                                 values={['Calculate Wrapped Amount', "Deposit amount", 'Finalise Auction']}
                             />
                         </div>
